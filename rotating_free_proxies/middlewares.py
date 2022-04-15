@@ -89,10 +89,12 @@ class RotatingProxyMiddleware(object):
     def from_crawler(cls, crawler):
         s = crawler.settings
         cls.proxy_path = s.get("ROTATING_PROXY_LIST_PATH", None)
-        cls.number_of_proxies_to_fetch = s.get("NUMBER_OF_PROXIES_TO_FETCH")
+        cls.number_of_proxies_to_fetch = s.get("NUMBER_OF_PROXIES_TO_FETCH",318)
+        cls.max_proxy_age = s.get("MAX_PROXY_AGE", 10800)
+        cls.anonymity_types = s.get("ANONYMITY_TYPES", {"ELITE","ANONYMOUS","TRANSPARENT"})
         if cls.proxy_path is not None:
             from .utils import fetch_new_proxies
-            proxy_list = fetch_new_proxies(cls.proxy_path, cls.number_of_proxies_to_fetch)
+            proxy_list = fetch_new_proxies(cls.proxy_path, cls.number_of_proxies_to_fetch, cls.max_proxy_age, cls.anonymity_types)
         else:
             proxy_list = s.getlist("ROTATING_PROXY_LIST")
         if not proxy_list:
@@ -140,7 +142,7 @@ class RotatingProxyMiddleware(object):
                 proxy = self.proxies.get_random()
                 from .utils import fetch_new_proxies
 
-                proxy_list = fetch_new_proxies(self.proxy_path, self.number_of_proxies_to_fetch)
+                proxy_list = fetch_new_proxies(self.proxy_path, self.number_of_proxies_to_fetch,self.max_proxy_age)
                 backoff = partial(
                     exp_backoff_full_jitter,
                     base=self.backoff_base,
