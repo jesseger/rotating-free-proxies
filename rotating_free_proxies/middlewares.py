@@ -142,7 +142,7 @@ class RotatingProxyMiddleware(object):
                 proxy = self.proxies.get_random()
                 from .utils import fetch_new_proxies
 
-                proxy_list = fetch_new_proxies(self.proxy_path, self.number_of_proxies_to_fetch,self.max_proxy_age)
+                proxy_list = fetch_new_proxies(self.proxy_path, self.number_of_proxies_to_fetch,self.max_proxy_age, self.anonymity_types)
                 backoff = partial(
                     exp_backoff_full_jitter,
                     base=self.backoff_base,
