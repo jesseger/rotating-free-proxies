@@ -7,6 +7,8 @@ try:
 except ImportError:
     from urllib.request import _parse_proxy
 
+from dateutil import parser
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,7 @@ def extract_proxy_hostport(proxy):
     return _parse_proxy(proxy)[3]
 
 
-def fetch_new_proxies(proxy_path, max_number_of_proxies):
+def fetch_new_proxies(proxy_path, max_number_of_proxies, max_proxy_age, anonymity_types):
     logger.warning(f"Fetching new proxies; dumping location = {proxy_path}")
     import requests
     from bs4 import BeautifulSoup
@@ -53,7 +55,12 @@ def fetch_new_proxies(proxy_path, max_number_of_proxies):
             return False
 
     def validate_port(port):
-        return str(port).isdigit() and 1000 < int(port) < 99999
+        return str(port).isdigit() and 0 < int(port) < 99999
+
+    def validate_age(age_string, max_age):
+        clean_age_string = age_string.replace(" ago","").replace("min","minute").replace("sec","second")
+        age = parser.parse(clean_age_string).second + parser.parse(clean_age_string).minute*60 + parser.parse(clean_age_string).hour*3600      
+        return age <= max_age
 
     proxies = list()
 
@@ -67,9 +74,10 @@ def fetch_new_proxies(proxy_path, max_number_of_proxies):
             port = tds[1].text
             if not validate_port(port):
                 continue
-            if "elite" not in tds[4].text:
+            if tds[4].text.replace("proxy","").strip().upper() not in anonymity_types: #"elite" not in tds[4].text and "anonymous" not in tds[4].text:
                 continue
-            if "minutes" in tds[-1].text:
+            age_text = tds[-1].text
+            if not validate_age(age_text, max_proxy_age):
                 continue
             protocol = "https" if "yes" in tds[6].text.strip() else "http"
             proxy = f"{protocol}://{ip}:{port}"
